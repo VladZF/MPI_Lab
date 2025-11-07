@@ -18,7 +18,7 @@ echo "1. По строкам (Row-wise)"
 echo "2. По столбцам (Column-wise) - (еще не реализовано)"
 echo "3. По блокам (Block-wise) - (еще не реализовано)"
 echo ""
-read -p "Ваш выбор [1]: " choice
+read -p "Ваш выбор [1, 2]: " choice
 choice=${choice:-1}
 
 case $choice in
@@ -26,8 +26,7 @@ case $choice in
         METHOD_NAME="rows"
         ;;
     2)
-        echo "Метод 'по столбцам' еще не реализован."
-        exit 1
+        METHOD_NAME="cols"
         ;;
     3)
         echo "Метод 'по блокам' еще не реализован."
@@ -71,11 +70,14 @@ echo "========================================================"
 
 for N_PROCS in "${PROCESSES_TO_RUN[@]}"
 do
-    if [ $(($MATRIX_ROWS % $N_PROCS)) -ne 0 ]; then
+    if [[ "$METHOD_NAME" == "rows" ]] && [ $(($MATRIX_ROWS % $N_PROCS)) -ne 0 ]; then
         echo "--> ПРОПУСК: $MATRIX_ROWS строк не делится на $N_PROCS процессов."
         continue
+    elif [[ "$METHOD_NAME" == "cols" ]] && [ $(($MATRIX_COLS % $N_PROCS)) -ne 0 ]; then
+        echo "--> ПРОПУСК: $MATRIX_COLS столбцов не делится на $N_PROCS процессов."
+        continue
     fi
-
+    
     echo -n "--> ВЫПОЛНЕНИЕ НА $N_PROCS ПРОЦЕССАХ... "
     mpiexec -np $N_PROCS --use-hwthread-cpus $EXECUTABLE_PATH $MATRIX_ROWS $MATRIX_COLS >> $RESULTS_FILE
     echo "[ЗАВЕРШЕНО]"
