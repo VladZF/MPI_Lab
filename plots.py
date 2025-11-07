@@ -6,9 +6,7 @@ import re
 RESULTS_DIR = 'Results'
 
 def generate_individual_plots(file_path, output_dir):
-    """
-    Генерирует набор из трех графиков для одного CSV-файла.
-    """
+
     file_name = os.path.basename(file_path)
     print(f"Обработка файла: {file_name}")
     
@@ -55,9 +53,7 @@ def generate_individual_plots(file_path, output_dir):
 
 
 def generate_comparison_plots(file_paths, output_dir):
-    """
-    Генерирует объединенные графики для сравнения нескольких CSV-файлов.
-    """
+
     print("\nСоздание сравнительных графиков для файлов task2...")
 
     matrix_dim_subtitle = ""
@@ -123,6 +119,66 @@ def generate_comparison_plots(file_paths, output_dir):
     print(f"Сравнительные графики сохранены в {output_path}")
 
 
+def generate_task3_plots(file_path, output_dir):
+
+    file_name = os.path.basename(file_path)
+    print(f"\nОбработка файла для Task 3: {file_name}")
+
+    try:
+        df = pd.read_csv(file_path)
+    except FileNotFoundError:
+        print(f"Файл {file_name} не найден. Пропуск.")
+        return
+
+    df['Speedup'] = 0.0
+    df['Efficiency'] = 0.0
+
+    for size in df['Matrix_Size'].unique():
+        mask = df['Matrix_Size'] == size
+        df_size = df[mask]
+        
+        try:
+            t_serial = df_size[df_size['Processes'] == 1]['Time_Seconds'].iloc[0]
+        except IndexError:
+            print(f"Предупреждение: для матрицы {size}x{size} не найдены данные для 1 процесса. Ускорение не будет рассчитано.")
+            continue
+            
+        df.loc[mask, 'Speedup'] = t_serial / df_size['Time_Seconds']
+        df.loc[mask, 'Efficiency'] = df.loc[mask, 'Speedup'] / df_size['Processes']
+
+    fig, axes = plt.subplots(1, 3, figsize=(22, 6))
+    fig.suptitle('Анализ производительности для Task 3 (алгоритм Кэннона)', fontsize=16)
+
+    axes[0].set_title('Время выполнения от кол-ва процессов')
+    axes[1].set_title('Ускорение от кол-ва процессов')
+    axes[2].set_title('Эффективность от кол-ва процессов')
+
+    for size in sorted(df['Matrix_Size'].unique()):
+        df_plot = df[df['Matrix_Size'] == size].sort_values(by='Processes')
+        label = f'Матрица {size}x{size}'
+        
+        axes[0].plot(df_plot['Processes'], df_plot['Time_Seconds'], marker='o', linestyle='-', label=label)
+        axes[1].plot(df_plot['Processes'], df_plot['Speedup'], marker='o', linestyle='-', label=label)
+        axes[2].plot(df_plot['Processes'], df_plot['Efficiency'], marker='o', linestyle='-', label=label)
+
+    processes = sorted(df['Processes'].unique())
+    for ax in axes:
+        ax.set_xlabel('Количество процессов')
+        ax.set_xticks(processes)
+        ax.grid(True)
+        ax.legend()
+    
+    axes[0].set_ylabel('Время (секунды)')
+    axes[1].set_ylabel('Ускорение (S)')
+    axes[2].set_ylabel('Эффективность (E)')
+    
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    output_path = os.path.join(output_dir, 'task3_cannon_plots.png')
+    plt.savefig(output_path)
+    print(f"Графики для {file_name} сохранены в {output_path}")
+
+
 if __name__ == "__main__":
     if not os.path.isdir(RESULTS_DIR):
         print(f"Директория '{RESULTS_DIR}' не найдена.")
@@ -132,11 +188,13 @@ if __name__ == "__main__":
     
     task1_files = [f for f in all_files if 'task1_pi' in f]
     task2_files = [f for f in all_files if 'task2_matvec' in f]
+    task3_files = [f for f in all_files if 'task3_cannon' in f]
 
-    if not task1_files and not task2_files:
+    if not any([task1_files, task2_files, task3_files]):
         print(f"В директории '{RESULTS_DIR}' не найдено подходящих CSV-файлов.")
         exit()
 
+    
     if task1_files:
         for file_path in task1_files:
             generate_individual_plots(file_path, RESULTS_DIR)
@@ -147,5 +205,11 @@ if __name__ == "__main__":
         generate_comparison_plots(task2_files, RESULTS_DIR)
     else:
         print("Файлы для task2 не найдены.")
+        
+    if task3_files:
+        for file_path in task3_files:
+            generate_task3_plots(file_path, RESULTS_DIR)
+    else:
+        print("Файлы для task3 не найдены.")
 
     print("\nРабота скрипта завершена.")
