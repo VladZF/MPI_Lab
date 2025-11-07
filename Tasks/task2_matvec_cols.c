@@ -53,20 +53,24 @@ int main(int argc, char** argv) {
                  ROOT_PROCESS, MPI_COMM_WORLD);
 
     double *local_A = (double*)malloc(M * local_N * sizeof(double));
-
-    MPI_Datatype col_type;
-    MPI_Type_vector(M, 1, N, MPI_DOUBLE, &col_type);
-
-    MPI_Datatype resized_col_type;
-    MPI_Type_create_resized(col_type, 0, 1 * sizeof(double), &resized_col_type);
-    MPI_Type_commit(&resized_col_type);
-    MPI_Type_free(&col_type);
-
-    MPI_Scatterv(full_A, counts, displs, resized_col_type,
-                 local_A, M * local_N, MPI_DOUBLE,
-                 ROOT_PROCESS, MPI_COMM_WORLD);
-
-    MPI_Type_free(&resized_col_type);
+    if (my_rank == ROOT_PROCESS) {
+        for (int p = 1; p < comm_sz; p++) {
+            MPI_Datatype col_block_type;
+            MPI_Type_vector(M, counts[p], N, MPI_DOUBLE, &col_block_type);
+            MPI_Type_commit(&col_block_type);
+            
+            MPI_Send(&full_A[displs[p]], 1, col_block_type, p, 0, MPI_COMM_WORLD);
+            
+            MPI_Type_free(&col_block_type);
+        }
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < local_N; j++) {
+                local_A[i * local_N + j] = full_A[i * N + j];
+            }
+        }
+    } else {
+        MPI_Recv(local_A, M * local_N, MPI_DOUBLE, ROOT_PROCESS, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
 
     double *partial_y = (double*)calloc(M, sizeof(double));
     for (int i = 0; i < M; i++) {
