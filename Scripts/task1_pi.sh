@@ -37,7 +37,7 @@ echo "--> Создание файла для результатов: $RESULTS_FI
 echo "Processes,Pi_Value,Time_Seconds" > $RESULTS_FILE
 echo ""
 
-PROCESSES_TO_RUN=(1 2 4 8 16)
+PROCESSES_TO_RUN=(1 2 4 8)
 
 echo "--> Запуск вычислений с $TOTAL_POINTS точек..."
 echo "========================================================"
@@ -45,7 +45,7 @@ echo "========================================================"
 for N in "${PROCESSES_TO_RUN[@]}"
 do
     echo -n "--> ВЫПОЛНЕНИЕ НА $N ПРОЦЕССАХ... "
-    mpiexec -np $N --use-hwthread-cpus $EXECUTABLE_PATH $TOTAL_POINTS >> $RESULTS_FILE
+    mpiexec -np $N $EXECUTABLE_PATH $TOTAL_POINTS >> $RESULTS_FILE
     echo "[ЗАВЕРШЕНО]"
     echo "--------------------------------------------------------"
 done

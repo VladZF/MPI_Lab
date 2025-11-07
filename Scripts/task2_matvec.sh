@@ -6,7 +6,7 @@ RESULTS_DIR="Results"
 
 MATRIX_ROWS=16384
 MATRIX_COLS=16384
-PROCESSES_TO_RUN=(1 2 4 8 16)
+PROCESSES_TO_RUN=(1 2 4 8)
 
 
 clear
@@ -79,7 +79,7 @@ do
     fi
     
     echo -n "--> ВЫПОЛНЕНИЕ НА $N_PROCS ПРОЦЕССАХ... "
-    mpiexec -np $N_PROCS --use-hwthread-cpus $EXECUTABLE_PATH $MATRIX_ROWS $MATRIX_COLS >> $RESULTS_FILE
+    mpiexec -np $N_PROCS $EXECUTABLE_PATH $MATRIX_ROWS $MATRIX_COLS >> $RESULTS_FILE
     echo "[ЗАВЕРШЕНО]"
     echo "--------------------------------------------------------"
 done
